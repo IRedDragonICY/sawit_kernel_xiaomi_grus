@@ -54,7 +54,7 @@ int strncmp(const char *cs, const char *ct, size_t count) {
 }
 #endif
 
-char *__efistub_strrchr(const char *s, int c) {
+char *strrchr(const char *s, int c) {
   const char *last = NULL;
   do {
     if (*s == (char)c)
