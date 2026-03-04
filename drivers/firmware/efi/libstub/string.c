@@ -55,3 +55,13 @@ int strncmp(const char *cs, const char *ct, size_t count)
 	return 0;
 }
 #endif
+
+char *__efistub_strrchr(const char *s, int c)
+{
+const char *last = NULL;
+do {
+== (char)c)
+s;
+} while (*s++);
+return (char *)last;
+}
