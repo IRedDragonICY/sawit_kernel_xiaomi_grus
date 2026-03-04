@@ -11225,7 +11225,6 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
  */
 void trigger_load_balance(struct rq *rq)
 {
-	int type = NOHZ_KICK_ANY;
 
 	/* Don't need to rebalance while attached to NULL domain or
 	 * cpu is isolated.
