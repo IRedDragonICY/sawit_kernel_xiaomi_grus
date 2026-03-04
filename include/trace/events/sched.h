@@ -950,7 +950,7 @@ TRACE_EVENT(sched_cpu_hotplug,
 /*
  * Tracepoint for load balancing:
  */
-#if NR_CPUS > 32
+#if NR_CPUS > 64
 #error "Unsupported NR_CPUS for lb tracepoint."
 #endif
 TRACE_EVENT(sched_load_balance,
