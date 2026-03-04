@@ -5,8 +5,8 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
-#include <linux/types.h>
 #include <linux/string.h>
+#include <linux/types.h>
 
 #ifndef __HAVE_ARCH_STRSTR
 /**
@@ -14,21 +14,20 @@
  * @s1: The string to be searched
  * @s2: The string to search for
  */
-char *strstr(const char *s1, const char *s2)
-{
-	size_t l1, l2;
+char *strstr(const char *s1, const char *s2) {
+  size_t l1, l2;
 
-	l2 = strlen(s2);
-	if (!l2)
-		return (char *)s1;
-	l1 = strlen(s1);
-	while (l1 >= l2) {
-		l1--;
-		if (!memcmp(s1, s2, l2))
-			return (char *)s1;
-		s1++;
-	}
-	return NULL;
+  l2 = strlen(s2);
+  if (!l2)
+    return (char *)s1;
+  l1 = strlen(s1);
+  while (l1 >= l2) {
+    l1--;
+    if (!memcmp(s1, s2, l2))
+      return (char *)s1;
+    s1++;
+  }
+  return NULL;
 }
 #endif
 
@@ -39,29 +38,27 @@ char *strstr(const char *s1, const char *s2)
  * @ct: Another string
  * @count: The maximum number of bytes to compare
  */
-int strncmp(const char *cs, const char *ct, size_t count)
-{
-	unsigned char c1, c2;
+int strncmp(const char *cs, const char *ct, size_t count) {
+  unsigned char c1, c2;
 
-	while (count) {
-		c1 = *cs++;
-		c2 = *ct++;
-		if (c1 != c2)
-			return c1 < c2 ? -1 : 1;
-		if (!c1)
-			break;
-		count--;
-	}
-	return 0;
+  while (count) {
+    c1 = *cs++;
+    c2 = *ct++;
+    if (c1 != c2)
+      return c1 < c2 ? -1 : 1;
+    if (!c1)
+      break;
+    count--;
+  }
+  return 0;
 }
 #endif
 
-char *__efistub_strrchr(const char *s, int c)
-{
-const char *last = NULL;
-do {
-== (char)c)
-s;
-} while (*s++);
-return (char *)last;
+char *__efistub_strrchr(const char *s, int c) {
+  const char *last = NULL;
+  do {
+    if (*s == (char)c)
+      last = s;
+  } while (*s++);
+  return (char *)last;
 }
