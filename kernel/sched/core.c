@@ -6122,7 +6122,7 @@ int sched_unisolate_cpu_unlocked(int cpu)
 		stop_cpus(cpumask_of(cpu), do_unisolation_work_cpu_stop, 0);
 
 		/* Kick CPU to immediately do load balancing */
-		if (!smp_send_reschedule(cpu))
+		smp_send_reschedule(cpu);
 			smp_send_reschedule(cpu);
 	}
 
