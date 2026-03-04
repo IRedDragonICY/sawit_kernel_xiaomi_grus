@@ -954,7 +954,7 @@ void spectre_bhb_enable_mitigation(const struct arm64_cpu_capabilities *entry)
 }
 
 /* Patched to correct the immediate */
-void __init spectre_bhb_patch_loop_iter(struct alt_instr *alt,
+void spectre_bhb_patch_loop_iter(struct alt_instr *alt,
 					__le32 *origptr, __le32 *updptr, int nr_inst)
 {
 	u8 rd;
