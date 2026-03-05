@@ -1,22 +1,22 @@
-#include <linux/version.h>
-#include <linux/cred.h>
-#include <linux/fs.h>
-#include <linux/path.h>
-#include <linux/slab.h>
-#include <linux/seq_file.h>
-#include <linux/printk.h>
-#include <linux/namei.h>
-#include <linux/list.h>
-#include <linux/init_task.h>
-#include <linux/spinlock.h>
-#include <linux/stat.h>
-#include <linux/uaccess.h>
-#include <linux/fdtable.h>
-#include <linux/mnt_namespace.h>
 #include "internal.h"
 #include "mount.h"
+#include <linux/cred.h>
+#include <linux/fdtable.h>
+#include <linux/fs.h>
+#include <linux/init_task.h>
+#include <linux/list.h>
+#include <linux/mnt_namespace.h>
+#include <linux/namei.h>
+#include <linux/path.h>
+#include <linux/printk.h>
+#include <linux/seq_file.h>
+#include <linux/slab.h>
+#include <linux/spinlock.h>
+#include <linux/stat.h>
 #include <linux/susfs.h>
 #include <linux/susfs_def.h>
+#include <linux/uaccess.h>
+#include <linux/version.h>
 
 LIST_HEAD(LH_SUS_PATH);
 LIST_HEAD(LH_SUS_KSTAT_SPOOFER);
@@ -1585,12 +1585,17 @@ out_copy_to_user:
 
 /* get susfs enabled features */
 void susfs_get_enabled_features(void __user **user_info) {
-  struct st_susfs_enabled_features info;
+  struct st_susfs_enabled_features *info;
 
-  memset(&info, 0, sizeof(info));
-  info.err = 0;
+  info = kzalloc(sizeof(*info), GFP_KERNEL);
+  if (!info) {
+    SUSFS_LOGE("kzalloc failed\n");
+    return;
+  }
 
-  strncpy(info.enabled_features,
+  info->err = 0;
+
+  strncpy(info->enabled_features,
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
           "CONFIG_KSU_SUSFS_SUS_PATH\n"
 #endif
@@ -1609,14 +1614,29 @@ void susfs_get_enabled_features(void __user **user_info) {
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
           "CONFIG_KSU_SUSFS_TRY_UMOUNT\n"
 #endif
+#ifdef CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+          "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+          "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
+          "CONFIG_KSU_SUSFS_OPEN_REDIRECT\n"
+#endif
+#ifdef CONFIG_KSU_SUSFS_SUS_MAPS
+          "CONFIG_KSU_SUSFS_SUS_MAPS\n"
+#endif
           ,
           SUSFS_ENABLED_FEATURES_SIZE - 1);
 
-  if (copy_to_user((struct st_susfs_enabled_features __user *)*user_info, &info,
-                   sizeof(info))) {
+  if (copy_to_user((struct st_susfs_enabled_features __user *)*user_info, info,
+                   sizeof(*info))) {
     SUSFS_LOGE("copy_to_user failed\n");
+  } else {
+    SUSFS_LOGI("CMD_SUSFS_SHOW_ENABLED_FEATURES -> ret: %d\n", info->err);
   }
-  SUSFS_LOGI("CMD_SUSFS_SHOW_ENABLED_FEATURES -> ret: %d\n", info.err);
+
+  kfree(info);
 }
 
 /* show_variant */
