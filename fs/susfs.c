@@ -1,22 +1,24 @@
-#include "internal.h"
-#include "mount.h"
+// clang-format off
+#include <linux/version.h>
 #include <linux/cred.h>
-#include <linux/fdtable.h>
 #include <linux/fs.h>
-#include <linux/init_task.h>
-#include <linux/list.h>
-#include <linux/mnt_namespace.h>
-#include <linux/namei.h>
 #include <linux/path.h>
-#include <linux/printk.h>
-#include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <linux/seq_file.h>
+#include <linux/printk.h>
+#include <linux/namei.h>
+#include <linux/list.h>
+#include <linux/init_task.h>
 #include <linux/spinlock.h>
 #include <linux/stat.h>
+#include <linux/uaccess.h>
+#include <linux/fdtable.h>
+#include <linux/mnt_namespace.h>
+#include "internal.h"
+#include "mount.h"
 #include <linux/susfs.h>
 #include <linux/susfs_def.h>
-#include <linux/uaccess.h>
-#include <linux/version.h>
+// clang-format on
 
 LIST_HEAD(LH_SUS_PATH);
 LIST_HEAD(LH_SUS_KSTAT_SPOOFER);
