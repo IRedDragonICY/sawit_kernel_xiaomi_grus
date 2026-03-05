@@ -131,6 +131,12 @@ out/
 *.zip
 
 # Embedded repos
-AnyKernel3/
+# AnyKernel3/ (Uncommented and specific ignores added below)
 KernelSU-Next/
 ReZygisk/
+
+# AnyKernel3 specific ignores
+AnyKernel3/Image*
+AnyKernel3/zImage*
+AnyKernel3/dtb*
+AnyKernel3/modules/system/lib/modules/*.ko
