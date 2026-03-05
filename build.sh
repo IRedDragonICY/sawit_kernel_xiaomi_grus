@@ -12,7 +12,7 @@ BASE_CONFIG="sdm670-perf_defconfig"
 XIAOMI_CONFIGS="xiaomi/sdm710-common.config xiaomi/grus.config"
 
 if [ "$VARIANT" = "ksu" ] || [ "$VARIANT" = "root" ]; then
-    ZIP_NAME="Sawit-Kernel-SDM710-KSUNext.zip"
+    ZIP_NAME="Sawit-Kernel-SDM710-KSUNext-susfs.zip"
     FINAL_CONFIGS="$BASE_CONFIG $XIAOMI_CONFIGS ksu_next.config"
     echo "[*] Selected Variant: Root (KernelSU-Next)"
 else
