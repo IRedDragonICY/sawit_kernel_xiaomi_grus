@@ -1409,6 +1409,13 @@ config NET_NS
 
 endif # NAMESPACES
 
+config SCHED_BORE
+	bool "Burst-Oriented Response Enhancer (BORE)"
+	default y
+	help
+	  BORE dynamically balances interactive and raw throughput by tweaking CFS
+	  vruntime scale based on burst time.
+
 config SCHED_AUTOGROUP
 	bool "Automatic process group scheduling"
 	select CGROUPS

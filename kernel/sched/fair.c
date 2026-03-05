@@ -816,6 +816,28 @@ static void update_tg_load_avg(struct cfs_rq *cfs_rq, int force) {}
 /*
  * Update the current task's runtime statistics.
  */
+#ifdef CONFIG_SCHED_BORE
+static inline u32 bore_calc_penalty(u64 burst_time) {
+	u32 msb;
+	if (burst_time == 0) return 0;
+	msb = fls64(burst_time);
+	if (!sysctl_sched_bore || msb <= sysctl_sched_burst_penalty_offset)
+		return 0;
+	return msb - sysctl_sched_burst_penalty_offset;
+}
+
+static void sched_bore_update_penalty(struct sched_entity *se) {
+	u32 p = bore_calc_penalty(se->burst_time);
+	se->penalty = p > 39 ? 39 : p;
+}
+
+static inline u64 bore_vruntime_scale(u64 delta, struct sched_entity *se) {
+	if (!sysctl_sched_bore || !se->penalty)
+		return delta;
+	return delta + ((delta * se->penalty * sysctl_sched_burst_penalty_scale) >> 10);
+}
+#endif
+
 static void update_curr(struct cfs_rq *cfs_rq) {
   struct sched_entity *curr = cfs_rq->curr;
   u64 now = rq_clock_task(rq_of(cfs_rq));
@@ -836,7 +858,13 @@ static void update_curr(struct cfs_rq *cfs_rq) {
   curr->sum_exec_runtime += delta_exec;
   schedstat_add(cfs_rq->exec_clock, delta_exec);
 
+#ifdef CONFIG_SCHED_BORE
+  curr->burst_time += delta_exec;
+  sched_bore_update_penalty(curr);
+  curr->vruntime += bore_vruntime_scale(calc_delta_fair(delta_exec, curr), curr);
+#else
   curr->vruntime += calc_delta_fair(delta_exec, curr);
+#endif
   update_min_vruntime(cfs_rq);
 
   if (entity_is_task(curr)) {
@@ -3471,6 +3499,16 @@ static void place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
     if (sched_feat(GENTLE_FAIR_SLEEPERS))
       thresh >>= 1;
 
+#ifdef CONFIG_SCHED_BORE
+    if (sysctl_sched_bore) {
+        unsigned long penalty_thresh = (thresh * se->penalty * sysctl_sched_burst_penalty_scale) >> 10;
+        if (penalty_thresh > thresh)
+            thresh = 0;
+        else
+            thresh -= penalty_thresh;
+    }
+#endif
+
     vruntime -= thresh;
   }
 
@@ -3531,6 +3569,16 @@ static void enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
                            int flags) {
   bool renorm = !(flags & ENQUEUE_WAKEUP) || (flags & ENQUEUE_MIGRATED);
   bool curr = cfs_rq->curr == se;
+
+#ifdef CONFIG_SCHED_BORE
+  if (sysctl_sched_bore && (flags & ENQUEUE_WAKEUP)) {
+    u64 now = rq_clock_task(rq_of(cfs_rq));
+    if (now - se->last_sleep_time > sysctl_sched_burst_cache_lifetime) {
+      se->burst_time = 0;
+      se->penalty = 0;
+    }
+  }
+#endif
 
   /*
    * If we're the current task, we must renormalise before calling
@@ -3628,6 +3676,11 @@ static void dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
    * Update run-time statistics of the 'current'.
    */
   update_curr(cfs_rq);
+
+#ifdef CONFIG_SCHED_BORE
+  if (sysctl_sched_bore && (flags & DEQUEUE_SLEEP))
+    se->last_sleep_time = rq_clock_task(rq_of(cfs_rq));
+#endif
 
   /*
    * When dequeuing a sched_entity, we must:

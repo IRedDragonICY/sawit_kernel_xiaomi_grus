@@ -314,6 +314,36 @@ static int max_extfrag_threshold = 1000;
 #endif
 
 static struct ctl_table kern_table[] = {
+#ifdef CONFIG_SCHED_BORE
+    {
+        .procname = "sched_bore",
+        .data = &sysctl_sched_bore,
+        .maxlen = sizeof(unsigned int),
+        .mode = 0644,
+        .proc_handler = proc_dointvec,
+    },
+    {
+        .procname = "sched_burst_cache_lifetime",
+        .data = &sysctl_sched_burst_cache_lifetime,
+        .maxlen = sizeof(unsigned int),
+        .mode = 0644,
+        .proc_handler = proc_dointvec,
+    },
+    {
+        .procname = "sched_burst_penalty_offset",
+        .data = &sysctl_sched_burst_penalty_offset,
+        .maxlen = sizeof(unsigned int),
+        .mode = 0644,
+        .proc_handler = proc_dointvec,
+    },
+    {
+        .procname = "sched_burst_penalty_scale",
+        .data = &sysctl_sched_burst_penalty_scale,
+        .maxlen = sizeof(unsigned int),
+        .mode = 0644,
+        .proc_handler = proc_dointvec,
+    },
+#endif
     {
         .procname = "sched_child_runs_first",
         .data = &sysctl_sched_child_runs_first,

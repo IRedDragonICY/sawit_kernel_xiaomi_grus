@@ -152,6 +152,13 @@ const_debug unsigned int sysctl_sched_time_avg = MSEC_PER_SEC;
  * period over which we measure -rt task cpu usage in us.
  * default: 1s
  */
+#ifdef CONFIG_SCHED_BORE
+unsigned int sysctl_sched_bore = 1;
+unsigned int sysctl_sched_burst_cache_lifetime = 75000000;
+unsigned int sysctl_sched_burst_penalty_offset = 24;
+unsigned int sysctl_sched_burst_penalty_scale = 1536;
+#endif
+
 unsigned int sysctl_sched_rt_period = 1000000;
 
 __read_mostly int scheduler_running;

@@ -1575,6 +1575,13 @@ struct sched_entity {
 	 */
 	struct sched_avg	avg ____cacheline_aligned_in_smp;
 #endif
+#ifdef CONFIG_SCHED_BORE
+	u64			burst_time;
+	u8			penalty;
+	u64			last_sleep_time;
+	u64			last_run_time;
+
+#endif
 };
 
 struct sched_rt_entity {
