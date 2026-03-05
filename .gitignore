@@ -123,3 +123,14 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+
+# Build output
+out/
+
+# Flashable zips
+*.zip
+
+# Embedded repos
+AnyKernel3/
+KernelSU-Next/
+ReZygisk/
