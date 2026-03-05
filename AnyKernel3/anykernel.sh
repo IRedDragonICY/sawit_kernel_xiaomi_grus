@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Grus KernelSU Next by Antigravity
+kernel.string=Sawit Kernel SU-Next SUSFS by IRedDragonICY
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -36,6 +36,31 @@ PATCH_VBMETA_FLAG=auto;
 
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
+
+ui_print " "
+ui_print "        . _ _ _ _ .                    "
+ui_print "     _.( \\   |   / )._                 "
+ui_print "    ( \\ \\ \\ _|_ / / / )                "
+ui_print " ___ \\ \\ \\ (808) / / / ___             "
+ui_print " \\  \\_-\\_-\\_\\|/_/-_/-_/  /             "
+ui_print "  \\____--_-\\|\\|/-_--____/              "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "            >XXX<                      "
+ui_print "           /_____\\                     "
+ui_print " "
+ui_print " ==================================== "
+ui_print "         S A W I T  K E R N E L       "
+ui_print " ==================================== "
+ui_print "  Maintainer : IRedDragonICY          "
+ui_print "  Device     : Xiaomi Mi 9 SE (grus)  "
+ui_print "  Variant    : KernelSU-Next + SUSFS  "
+ui_print " ==================================== "
+ui_print " "
 
 # boot install
 dump_boot; # use split_boot to skip ramdisk unpack, e.g. for devices with init_boot ramdisk
