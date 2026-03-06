@@ -592,8 +592,8 @@
 
 				qcom,speed-bin = <128>;
 
-				qcom,initial-pwrlevel = <5>;
-				qcom,ca-target-pwrlevel = <3>;
+				qcom,initial-pwrlevel = <6>;
+				qcom,ca-target-pwrlevel = <4>;
 
 				/* NOM_L1 */
 				qcom,gpu-pwrlevel@0 {
@@ -649,9 +649,18 @@
 					qcom,bus-max = <4>;
 				};
 
-				/* XO */
+				/* ULTRA LOW */
 				qcom,gpu-pwrlevel@6 {
 					reg = <6>;
+					qcom,gpu-freq = <100000000>;
+					qcom,bus-freq = <1>;
+					qcom,bus-min = <1>;
+					qcom,bus-max = <1>;
+				};
+
+				/* XO */
+				qcom,gpu-pwrlevel@7 {
+					reg = <7>;
 					qcom,gpu-freq = <0>;
 					qcom,bus-freq = <0>;
 					qcom,bus-min = <0>;

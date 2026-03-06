@@ -38,6 +38,7 @@ if [ -f "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb" ]; then
     echo "[*] Kernel built successfully!"
     echo "[*] Packaging zip..."
     cp "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb" "${ANYKERNEL_DIR}/"
+    cat "${OUT_DIR}/arch/arm64/boot/dts/qcom/sdm670.dtb" "${OUT_DIR}/arch/arm64/boot/dts/qcom/sdm710.dtb" > "${ANYKERNEL_DIR}/dtb"
     cd "${ANYKERNEL_DIR}"
     rm -f AnyKernel3-*.zip
     zip -r9 "${ZIP_NAME}" * -x .git README.md *placeholder
