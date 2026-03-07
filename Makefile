@@ -682,6 +682,10 @@ LDFLAGS		+= -plugin LLVMgold.so
 # Do NOT add plugin-opt here — tested and confirmed broken.
 LDFLAGS		+= -plugin-opt=jobs=$(shell nproc)
 LDFLAGS		+= -plugin-opt=--enable-merge-functions
+# LTO link-time inlining uses its own threshold — pass it explicitly
+# NOTE: this is NOT plugin-opt=O3 (which is broken). This only sets the
+# inline threshold for cross-module inlining decisions during LTO.
+LDFLAGS		+= -plugin-opt=--inline-threshold=600
 # use llvm-ar for building symbol tables from IR files, and llvm-dis instead
 # of objdump for processing symbol versions and exports
 LLVM_AR		:= llvm-ar
@@ -828,7 +832,11 @@ KBUILD_CFLAGS += $(call cc-disable-warning, tautological-compare)
 # CLANG uses a _MergedGlobals as optimization, but this breaks modpost, as the
 # source of a reference will be _MergedGlobals and not on of the whitelisted names.
 # See modpost pattern 2
+# With Full LTO, modpost doesn't inspect intermediate .o symbol tables,
+# so _MergedGlobals is harmless — let global-merge optimize.
+ifndef CONFIG_LTO_CLANG
 KBUILD_CFLAGS += $(call cc-option, -mno-global-merge,)
+endif
 KBUILD_CFLAGS += $(call cc-option, -fcatch-undefined-behavior)
 endif
 
