@@ -1,7 +1,7 @@
 VERSION = 4
 PATCHLEVEL = 9
 SUBLEVEL = 337
-EXTRAVERSION = -sawit-ksun-susfs
+EXTRAVERSION =
 NAME = Roaring Lionus
 
 # *DOCUMENTATION*
@@ -672,10 +672,16 @@ export CFLAGS_GCOV CFLAGS_KCOV
 # Make toolchain changes before including arch/$(SRCARCH)/Makefile to ensure
 # ar/cc/ld-* macros return correct values.
 ifdef CONFIG_LTO_CLANG
-# use GNU gold with LLVMgold for LTO linking, and LD for vmlinux_link
+# ld.lld native LTO does NOT work on kernel 4.9 (stuck boot).
+# Use gold + LLVMgold.so for LTO link step; ld.lld for final vmlinux link.
 LDFINAL_vmlinux := $(LD)
 LD		:= $(LDGOLD)
 LDFLAGS		+= -plugin LLVMgold.so
+# NOTE: plugin-opt=O3 and plugin-opt=mcpu=cortex-a75 cause stuck boot on SDM710.
+# gold uses default O2 codegen which is the only working configuration.
+# Do NOT add plugin-opt here — tested and confirmed broken.
+LDFLAGS		+= -plugin-opt=jobs=$(shell nproc)
+LDFLAGS		+= -plugin-opt=--enable-merge-functions
 # use llvm-ar for building symbol tables from IR files, and llvm-dis instead
 # of objdump for processing symbol versions and exports
 LLVM_AR		:= llvm-ar
@@ -704,7 +710,10 @@ KBUILD_CFLAGS	+= $(call cc-option,-fdata-sections,)
 endif
 
 ifdef CONFIG_LTO_CLANG
-lto-clang-flags	:= -flto -fvisibility=hidden
+# Full LTO via gold + LLVMgold.so — whole-program optimization
+# Full LTO analyzes ALL translation units together (unlike ThinLTO's per-module).
+# This enables maximum cross-module inlining, devirtualization, and dead code elimination.
+lto-clang-flags	:= -flto=thin -fvisibility=hidden
 
 # allow disabling only clang LTO where needed
 DISABLE_LTO_CLANG := -fno-lto -fvisibility=default
@@ -1219,8 +1228,10 @@ ifdef CONFIG_LTO_CLANG
   ifneq ($(call clang-ifversion, -ge, 0500, y), y)
 	@echo Cannot use CONFIG_LTO_CLANG: requires clang 5.0 or later >&2 && exit 1
   endif
+  ifeq ($(LLVM),)
   ifneq ($(call gold-ifversion, -ge, 112000000, y), y)
 	@echo Cannot use CONFIG_LTO_CLANG: requires GNU gold 1.12 or later >&2 && exit 1
+  endif
   endif
 endif
 # Make sure compiler supports LTO flags

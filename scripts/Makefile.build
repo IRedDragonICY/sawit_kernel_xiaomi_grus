@@ -618,7 +618,9 @@ cmd_link_multi-link = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secana
 ifdef CONFIG_THIN_ARCHIVES
   quiet_cmd_link_multi-y = AR      $@
   cmd_link_multi-y = $(update_lto_symversions) \
-	rm -f $@; $(AR) rcSTP$(KBUILD_ARFLAGS) $@ $(link_multi_deps) \
+	rm -f $@; \
+	$(file >$@.args) $(foreach o,$(link_multi_deps),$(file >>$@.args,$o)) \
+	$(AR) rcSTP$(KBUILD_ARFLAGS) $@ @$@.args; rm -f $@.args \
 	$(update_lto_symtable)
 else
   quiet_cmd_link_multi-y = LD      $@
