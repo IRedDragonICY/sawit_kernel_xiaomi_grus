@@ -713,7 +713,7 @@ ifdef CONFIG_LTO_CLANG
 # Full LTO via gold + LLVMgold.so — whole-program optimization
 # Full LTO analyzes ALL translation units together (unlike ThinLTO's per-module).
 # This enables maximum cross-module inlining, devirtualization, and dead code elimination.
-lto-clang-flags	:= -flto=thin -fvisibility=hidden
+lto-clang-flags	:= -flto -fvisibility=hidden
 
 # allow disabling only clang LTO where needed
 DISABLE_LTO_CLANG := -fno-lto -fvisibility=default
