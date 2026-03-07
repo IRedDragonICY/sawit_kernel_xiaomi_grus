@@ -831,10 +831,45 @@ static void sched_bore_update_penalty(struct sched_entity *se) {
 	se->penalty = p > 39 ? 39 : p;
 }
 
+/*
+ * BORE + WALT synergy: Modulate the vruntime penalty based on the task's
+ * WALT demand signal.  Interactive tasks (low ravg.demand relative to the
+ * WALT window) get a reduced penalty so they can preempt CPU-hogs faster,
+ * while batch/background tasks (high demand) keep full penalty — EAS
+ * naturally routes them to efficient cores.
+ *
+ * When sysctl_sched_burst_walt_scale == 0, WALT modulation is disabled
+ * and BORE behaves as stock.
+ *
+ * Scaling: penalty_effective = penalty * (1 - demand_ratio / 2)
+ * where demand_ratio = ravg.demand / sched_ravg_window (0..1 range).
+ * A fully-loaded task (demand_ratio=1) keeps 50% penalty.
+ * An idle-ish interactive task (demand_ratio~0) keeps ~100% penalty but
+ * with burst_time naturally small, so the net effect is near-zero vruntime
+ * inflation — instant preemption.
+ */
 static inline u64 bore_vruntime_scale(u64 delta, struct sched_entity *se) {
+	u32 effective_penalty;
 	if (!sysctl_sched_bore || !se->penalty)
 		return delta;
-	return delta + ((delta * se->penalty * sysctl_sched_burst_penalty_scale) >> 10);
+	effective_penalty = se->penalty;
+#ifdef CONFIG_SCHED_WALT
+	if (sysctl_sched_burst_walt_scale && entity_is_task(se) &&
+	    sched_ravg_window > 0) {
+		struct task_struct *p = task_of(se);
+		unsigned long demand = p->ravg.demand;
+		unsigned long window = sched_ravg_window;
+		/*
+		 * demand_ratio approx [0..1024] via fixed-point:
+		 *   ratio = (demand << 10) / window
+		 * penalty_scale = 1024 - ratio/2 = 1024 - (demand << 9) / window
+		 */
+		unsigned long ratio = (demand << 10) / window;
+		unsigned long scale = 1024 - min_t(unsigned long, ratio >> 1, 512);
+		effective_penalty = (u32)((effective_penalty * scale) >> 10);
+	}
+#endif
+	return delta + ((delta * effective_penalty * sysctl_sched_burst_penalty_scale) >> 10);
 }
 #endif
 
@@ -3573,7 +3608,21 @@ static void enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se,
 #ifdef CONFIG_SCHED_BORE
   if (sysctl_sched_bore && (flags & ENQUEUE_WAKEUP)) {
     u64 now = rq_clock_task(rq_of(cfs_rq));
-    if (now - se->last_sleep_time > sysctl_sched_burst_cache_lifetime) {
+    u64 effective_lifetime = sysctl_sched_burst_cache_lifetime;
+#ifdef CONFIG_SCHED_WALT
+    /*
+     * WALT-accelerated burst decay: For tasks with low predicted demand
+     * (interactive), halve the burst cache lifetime so their burst_time
+     * resets faster after sleeping — making them more responsive on
+     * wake-up without penalizing their vruntime.
+     */
+    if (sysctl_sched_burst_walt_scale && entity_is_task(se)) {
+      struct task_struct *p = task_of(se);
+      if (p->ravg.pred_demand < (sched_ravg_window >> 2))
+        effective_lifetime >>= 1;
+    }
+#endif
+    if (now - se->last_sleep_time > effective_lifetime) {
       se->burst_time = 0;
       se->penalty = 0;
     }

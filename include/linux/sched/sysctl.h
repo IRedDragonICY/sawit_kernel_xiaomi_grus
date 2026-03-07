@@ -24,6 +24,7 @@ extern unsigned int sysctl_sched_bore;
 extern unsigned int sysctl_sched_burst_cache_lifetime;
 extern unsigned int sysctl_sched_burst_penalty_offset;
 extern unsigned int sysctl_sched_burst_penalty_scale;
+extern unsigned int sysctl_sched_burst_walt_scale;
 #endif
 
 extern unsigned int sysctl_sched_is_big_little;

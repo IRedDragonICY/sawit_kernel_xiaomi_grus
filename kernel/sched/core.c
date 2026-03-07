@@ -157,6 +157,7 @@ unsigned int sysctl_sched_bore = 1;
 unsigned int sysctl_sched_burst_cache_lifetime = 75000000;
 unsigned int sysctl_sched_burst_penalty_offset = 24;
 unsigned int sysctl_sched_burst_penalty_scale = 1536;
+unsigned int sysctl_sched_burst_walt_scale = 1;
 #endif
 
 unsigned int sysctl_sched_rt_period = 1000000;

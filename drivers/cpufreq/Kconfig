@@ -130,6 +130,17 @@ config CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	  have a look at the help section of that governor. The fallback
 	  governor will be 'performance'.
 
+config CPU_FREQ_DEFAULT_GOV_WALT
+	bool "walt"
+	depends on SMP && SCHED_WALT
+	select CPU_FREQ_GOV_WALT
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the 'walt' CPUFreq governor by default. This governor uses
+	  Window-Assisted Load Tracking (WALT) signals natively for CPU
+	  frequency decisions, including predicted load and top-task
+	  awareness. The fallback governor will be 'performance'.
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -253,6 +264,23 @@ config CPU_FREQ_GOV_SCHEDUTIL
 	  case, it is proportional to the current frequency of the CPU.  The
 	  frequency tipping point is at utilization/capacity equal to 80% in
 	  both cases.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_WALT
+	bool "'walt' cpufreq policy governor"
+	depends on CPU_FREQ && SMP && SCHED_WALT
+	select CPU_FREQ_GOV_ATTR_SET
+	select IRQ_WORK
+	help
+	  This governor uses Window-Assisted Load Tracking (WALT) signals
+	  natively for CPU frequency scaling.  Unlike schedutil which
+	  augments PELT-based logic with WALT data, this governor is built
+	  around WALT from the ground up.  It uses predicted demand, top-task
+	  load, and per-window cycle tracking for optimal frequency selection.
+
+	  Features adaptive rate limiting, hispeed thresholds, and predictive
+	  load support for energy-efficient burst responsiveness.
 
 	  If in doubt, say N.
 

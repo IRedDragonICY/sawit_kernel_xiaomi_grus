@@ -343,6 +343,13 @@ static struct ctl_table kern_table[] = {
         .mode = 0644,
         .proc_handler = proc_dointvec,
     },
+    {
+        .procname = "sched_burst_walt_scale",
+        .data = &sysctl_sched_burst_walt_scale,
+        .maxlen = sizeof(unsigned int),
+        .mode = 0644,
+        .proc_handler = proc_dointvec,
+    },
 #endif
     {
         .procname = "sched_child_runs_first",
