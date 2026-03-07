@@ -167,6 +167,18 @@ struct tcp_bbr_info {
 	__u32	bbr_min_rtt;		/* min-filtered RTT in uSec */
 	__u32	bbr_pacing_gain;	/* pacing gain shifted left 8 bits */
 	__u32	bbr_cwnd_gain;		/* cwnd gain shifted left 8 bits */
+	/* BBRv3 extended fields: */
+	__u32	bbr_bw_hi_lsb;		/* lower 32b of bw_hi (max bw) */
+	__u32	bbr_bw_hi_msb;		/* upper 32b of bw_hi (max bw) */
+	__u32	bbr_bw_lo_lsb;		/* lower 32b of bw_lo (min bw) */
+	__u32	bbr_bw_lo_msb;		/* upper 32b of bw_lo (min bw) */
+	__u8	bbr_mode;		/* current bbr_mode */
+	__u8	bbr_phase;		/* current phase in state machine */
+	__u8	bbr_version;		/* BBR algorithm version */
+	__u8	bbr_unused1;		/* alignment */
+	__u32	bbr_inflight_lo;	/* lower bound of inflight range */
+	__u32	bbr_inflight_hi;	/* upper bound of inflight range */
+	__u32	bbr_extra_acked;	/* recent excess data ACKed */
 };
 
 union tcp_cc_info {

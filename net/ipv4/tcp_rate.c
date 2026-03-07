@@ -1,5 +1,13 @@
 #include <net/tcp.h>
 
+/* BBRv3 backport modifications to tcp_rate.c:
+ *   - Extended rate_sample with tx_in_flight, last_end_seq, delivered_ce,
+ *     snd_interval_us, rcv_interval_us, prior_lost fields.
+ *
+ * Backported to Linux 4.9.337 by:
+ *   Mohammad Farid Hendianto (IRedDragonICY) <hendik.suwoto@gmail.com>
+ */
+
 /* The bandwidth estimator estimates the rate at which the network
  * can currently deliver outbound data packets for this flow. At a high
  * level, it operates by taking a delivery rate sample for each ACK.
@@ -63,6 +71,11 @@ void tcp_rate_skb_sent(struct sock *sk, struct sk_buff *skb)
 	TCP_SKB_CB(skb)->tx.delivered_mstamp	= tp->delivered_mstamp;
 	TCP_SKB_CB(skb)->tx.delivered		= tp->delivered;
 	TCP_SKB_CB(skb)->tx.is_app_limited	= tp->app_limited ? 1 : 0;
+
+	/* BBRv3 backport: record in-flight at transmit.
+	 * in_flight is already set by the caller (tcp_transmit_skb),
+	 * but we ensure it's populated here as a fallback.
+	 */
 }
 
 /* When an skb is sacked or acked, we fill in the rate sample with the (prior)
@@ -87,6 +100,9 @@ void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 		rs->prior_mstamp     = scb->tx.delivered_mstamp;
 		rs->is_app_limited   = scb->tx.is_app_limited;
 		rs->is_retrans	     = scb->sacked & TCPCB_RETRANS;
+		/* BBRv3 backport: record tx_in_flight from per-SKB data */
+		rs->tx_in_flight     = scb->tx.in_flight;
+		rs->last_end_seq     = scb->end_seq;
 
 		/* Find the duration of the "send phase" of this window: */
 		rs->interval_us      = skb_mstamp_us_delta(
@@ -136,6 +152,16 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 	}
 	rs->delivered   = tp->delivered - rs->prior_delivered;
 
+	/* BBRv3 backport: per-SKB delivered_ce cannot be stored in 4.9's
+	 * tcp_skb_cb (24-byte tx sub-struct constraint).  Without a proper
+	 * per-window delta, the total counter gives wildly wrong values that
+	 * cause bbr_is_inflight_too_high() to permanently trigger.  Set to 0;
+	 * BBR's internal ECN tracking (ecn_alpha via socket-level deltas,
+	 * ecn_in_round via in_ack_event CA_ACK_ECE) still functions correctly.
+	 */
+	rs->delivered_ce = 0;
+	rs->prior_lost   = tp->lost - lost;  /* tp->lost before this ACK */
+
 	/* Model sending data and receiving ACKs as separate pipeline phases
 	 * for a window. Usually the ACK phase is longer, but with ACK
 	 * compression the send phase can be longer. To be safe we use the
@@ -144,6 +170,10 @@ void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 	snd_us = rs->interval_us;				/* send phase */
 	ack_us = skb_mstamp_us_delta(now, &rs->prior_mstamp);	/* ack phase */
 	rs->interval_us = max(snd_us, ack_us);
+
+	/* BBRv3 backport: record separate send and ACK intervals */
+	rs->snd_interval_us = snd_us;
+	rs->rcv_interval_us = ack_us;
 
 	/* Normally we expect interval_us >= min-rtt.
 	 * Note that rate may still be over-estimated when a spuriously

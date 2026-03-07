@@ -1014,6 +1014,14 @@ enum tcp_ca_ack_event_flags {
 #define TCP_CONG_NON_RESTRICTED 0x1
 /* Requires ECN/ECT set on all packets */
 #define TCP_CONG_NEEDS_ECN	0x2
+/* CC wants notification of CE events (CA_EVENT_ECN_IS_CE, CA_EVENT_ECN_NO_CE) */
+#define TCP_CONG_WANTS_CE_EVENTS 0x100000
+
+/* BBRv3 compat: TCP_ECN_LOW flag for per-route shallow-ECN marking.
+ * Not supported in 4.9 routing stack, so we define the bit but leave
+ * it to the CC module to decide when ECN is usable.
+ */
+#define TCP_ECN_LOW		0x80
 
 union tcp_cc_info;
 
@@ -1034,14 +1042,24 @@ struct ack_sample {
 struct rate_sample {
 	struct	skb_mstamp prior_mstamp; /* starting timestamp for interval */
 	u32  prior_delivered;	/* tp->delivered at "prior_mstamp" */
+	u32  prior_delivered_ce;	/* tp->delivered_ce at "prior_mstamp" */
 	s32  delivered;		/* number of packets delivered over interval */
+	s32  delivered_ce;	/* CE-marked packets delivered over interval */
 	long interval_us;	/* time for tp->delivered to incr "delivered" */
+	long snd_interval_us;	/* send phase duration */
+	long rcv_interval_us;	/* ACK phase duration */
 	long rtt_us;		/* RTT of last (S)ACKed packet (or -1) */
 	int  losses;		/* number of packets marked lost upon ACK */
 	u32  acked_sacked;	/* number of packets newly (S)ACKed upon ACK */
 	u32  prior_in_flight;	/* in flight before this ACK */
+	u32  tx_in_flight;	/* packets in flight at transmit */
+	u32  prior_lost;		/* tp->lost at "prior_mstamp" */
+	u32  last_end_seq;	/* end_seq of most recently (S)ACKed skb */
 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
 	bool is_retrans;	/* is sample from retransmission? */
+	bool is_ece;		/* ACK had ECE flag set */
+	bool is_ack_delayed;	/* is this a delayed ACK? (approx) */
+	bool is_acking_tlp_retrans_seq; /* ACKing a TLP retransmit? */
 };
 
 struct tcp_congestion_ops {
@@ -2286,5 +2304,53 @@ static inline void tcp_listendrop(const struct sock *sk)
 }
 
 enum hrtimer_restart tcp_pace_kick(struct hrtimer *timer);
+
+/* BBRv3 backport compat: accessor macros for tcp_snd_cwnd / tcp_snd_cwnd_set.
+ * Modern kernels use accessors; 4.9 accesses tp->snd_cwnd directly.
+ *
+ * BBRv3 backport compat layer by:
+ *   Mohammad Farid Hendianto (IRedDragonICY) <hendik.suwoto@gmail.com>
+ */
+static inline u32 tcp_snd_cwnd(const struct tcp_sock *tp)
+{
+	return tp->snd_cwnd;
+}
+
+static inline void tcp_snd_cwnd_set(struct tcp_sock *tp, u32 val)
+{
+	WARN_ON_ONCE((int)val <= 0);
+	tp->snd_cwnd = val;
+}
+
+/* BBRv3 backport: TCPCB_DELIVERED_CE_MASK - not tracked per-SKB in 4.9 */
+#define TCPCB_DELIVERED_CE_MASK	0xFFFFF
+
+/* BBRv3 backport: TCPCB_IN_FLIGHT_MAX for the 30-bit in_flight field */
+#define TCPCB_IN_FLIGHT_MAX	((1U << 30) - 1)
+
+/* BBRv3 compat: skb_mstamp version of tcp_stamp_us_delta.
+ * The original tcp_stamp_us_delta(u64, u64) exists at line ~804.
+ * BBRv3 code should use this mstamp variant directly.
+ */
+static inline u32 tcp_stamp_us_delta_mstamp(struct skb_mstamp a,
+					    struct skb_mstamp b)
+{
+	return skb_mstamp_us_delta(&a, &b);
+}
+
+/* BBRv3 uses tcp_jiffies32 - in 4.9, this is tcp_time_stamp */
+#define tcp_jiffies32	tcp_time_stamp
+
+/* tcp_bbr_phase enum for inet_diag */
+enum tcp_bbr_phase {
+	BBR_PHASE_INVALID		= 0,
+	BBR_PHASE_STARTUP		= 1,
+	BBR_PHASE_DRAIN			= 2,
+	BBR_PHASE_PROBE_BW_UP		= 3,
+	BBR_PHASE_PROBE_BW_DOWN	= 4,
+	BBR_PHASE_PROBE_BW_CRUISE	= 5,
+	BBR_PHASE_PROBE_BW_REFILL	= 6,
+	BBR_PHASE_PROBE_RTT		= 7,
+};
 
 #endif	/* _TCP_H */
