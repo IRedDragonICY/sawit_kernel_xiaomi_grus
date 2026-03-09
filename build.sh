@@ -38,6 +38,11 @@ CONF_DISABLE_SPECTRE=1         # Spectre v2/v4/BHB off (firmware handles it)
 # ── CPU errata (SDM710 = A75+A55 only) ──
 CONF_DISABLE_IRRELEVANT_ERRATA=1  # Disable A53/A57/A72/A76/Cavium/QDF2400 errata
 
+# ── Tracing & Logging mitigations ──
+CONF_DISABLE_TRACING=1          # Disable PROFILING, IPC Logging, Trace packets
+CONF_DISABLE_CORESIGHT=1        # Disable ARM CoreSight HW tracing
+CONF_DISABLE_EXTRA_LOGGING=1    # Disable extra driver logging (SCSI, SPMI, MMC, SDE)
+
 # ── Security hardening ──
 CONF_WEAKEN_SECURITY=1          # Downgrade/disable non-essential security features
                                 # (stackprotector→regular, no fortify, no usercopy, etc.)
@@ -167,6 +172,45 @@ EOF
 # QDF2400 server
 # CONFIG_QCOM_QDF2400_ERRATUM_0065 is not set
 # KEEP: ARM64_ERRATUM_1024718 (Cortex-A55 — SDM710 silver cores)
+EOF
+    fi
+
+    # ── Tracing / Logging ──
+    if [ "$CONF_DISABLE_TRACING" = 1 ]; then
+        cat >> "$cfg" << 'EOF'
+
+# ── Tracing & Logging bloat disabled ──
+# CONFIG_PROFILING is not set
+# CONFIG_IPC_LOGGING is not set
+# CONFIG_TRACER_PKT is not set
+# CONFIG_MSM_TZ_LOG is not set
+# CONFIG_QTI_RPM_STATS_LOG is not set
+# CONFIG_QMP_DEBUGFS_CLIENT is not set
+EOF
+    fi
+
+    if [ "$CONF_DISABLE_CORESIGHT" = 1 ]; then
+        cat >> "$cfg" << 'EOF'
+
+# ── CoreSight HW Tracing disabled ──
+# CONFIG_CORESIGHT is not set
+EOF
+    fi
+
+    if [ "$CONF_DISABLE_EXTRA_LOGGING" = 1 ]; then
+        cat >> "$cfg" << 'EOF'
+
+# ── Extra Driver Logging disabled ──
+# CONFIG_SCSI_LOGGING is not set
+# CONFIG_SCSI_UFSHCD_CMD_LOGGING is not set
+# CONFIG_DM_DEBUG is not set
+# CONFIG_SPMI_MSM_PMIC_ARB_DEBUG is not set
+# CONFIG_VIDEO_ADV_DEBUG is not set
+# CONFIG_MSM_SDE_ROTATOR_EVTLOG_DEBUG is not set
+# CONFIG_DRM_SDE_EVTLOG_DEBUG is not set
+# CONFIG_MMC_PERF_PROFILING is not set
+# CONFIG_IOMMU_DEBUG is not set
+# CONFIG_IOMMU_DEBUG_TRACKING is not set
 EOF
     fi
 
@@ -383,7 +427,19 @@ build_variant() {
             "${OUT_DIR}/arch/arm64/boot/dts/qcom/sdm710.dtb" > "${ANYKERNEL_DIR}/dtb"
         cd "${ANYKERNEL_DIR}"
         rm -f AnyKernel3-*.zip
-        zip -r9 "${zip_name}" * -x .git README.md *placeholder
+        
+        if command -v 7z >/dev/null 2>&1; then
+            echo "[*] Packaging with 7-Zip (Extreme zip compression)..."
+            # -mx=9: Ultra compression
+            # -mm=Deflate: Ensures TWRP/KSU compatibility (Deflate64 is not universally supported by Android unzip)
+            # -mfb=258: Max fast bytes for Deflate
+            # -mpass=15: Max passes for Deflate
+            7z a -tzip -mx=9 -mm=Deflate -mfb=258 -mpass=15 "${zip_name}" * -x!.git -x!README.md -x!*placeholder > /dev/null
+        else
+            echo "[*] 7-Zip not found. Falling back to zip..."
+            zip -q -r9 "${zip_name}" * -x .git README.md *placeholder
+        fi
+        
         mv "${zip_name}" "${KERNEL_DIR}/"
         cd "${KERNEL_DIR}"
         echo "[*] Done! → ${KERNEL_DIR}/${zip_name}"
