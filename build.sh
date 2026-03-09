@@ -416,7 +416,7 @@ for arg in "$@"; do
         *) VARIANT="$arg" ;;
     esac
 done
-VARIANT="${VARIANT:-nonroot}"
+VARIANT="${VARIANT:-ksun_susfs}"
 
 if [ "$VARIANT" = "all" ]; then
     echo "========================================================"
