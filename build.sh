@@ -5,6 +5,9 @@ KERNEL_DIR="$(pwd)"
 ANYKERNEL_DIR="${KERNEL_DIR}/AnyKernel3"
 OUT_DIR="${KERNEL_DIR}/out"
 
+# Versioning
+KERNEL_VERSION="v1.0"
+
 # Configuration
 BASE_CONFIG="sdm670-perf_defconfig"
 XIAOMI_CONFIGS="xiaomi/sdm710-common.config xiaomi/grus.config"
@@ -387,7 +390,7 @@ build_variant() {
 
     case "$variant" in
         nonroot)
-            zip_name="Sawit-Kernel-SDM710-NonRoot.zip"
+            zip_name="Sawit-Kernel-${KERNEL_VERSION}-SDM710-NonRoot.zip"
             final_configs="$BASE_CONFIG $XIAOMI_CONFIGS nonroot.config"
             VARIANT_SUFFIX="-sawit"
             echo ""
@@ -396,7 +399,7 @@ build_variant() {
             echo "============================================"
             ;;
         ksun)
-            zip_name="Sawit-Kernel-SDM710-KSUNext.zip"
+            zip_name="Sawit-Kernel-${KERNEL_VERSION}-SDM710-KSUNext.zip"
             final_configs="$BASE_CONFIG $XIAOMI_CONFIGS ksu_next_nosusfs.config"
             VARIANT_SUFFIX="-sawit-ksun"
             echo ""
@@ -405,7 +408,7 @@ build_variant() {
             echo "============================================"
             ;;
         ksun_susfs|ksu)
-            zip_name="Sawit-Kernel-SDM710-KSUNext-susfs.zip"
+            zip_name="Sawit-Kernel-${KERNEL_VERSION}-SDM710-KSUNext-susfs.zip"
             final_configs="$BASE_CONFIG $XIAOMI_CONFIGS ksu_next.config"
             VARIANT_SUFFIX="-sawit-ksun-susfs"
             echo ""
