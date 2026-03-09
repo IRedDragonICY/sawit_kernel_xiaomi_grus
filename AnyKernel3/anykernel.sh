@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=Sawit Kernel SU-Next SUSFS by IRedDragonICY
+kernel.string=Sawit Kernel by IRedDragonICY
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -58,7 +58,7 @@ ui_print "         S A W I T  K E R N E L       "
 ui_print " ==================================== "
 ui_print "  Maintainer : IRedDragonICY          "
 ui_print "  Device     : Xiaomi Mi 9 SE (grus)  "
-ui_print "  Variant    : KernelSU-Next + SUSFS  "
+ui_print "  Variant    : See package filename   "
 ui_print " ==================================== "
 ui_print " "
 

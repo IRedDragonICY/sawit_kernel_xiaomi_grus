@@ -130,6 +130,9 @@ out/
 # Flashable zips
 *.zip
 
+# Build logs
+/build.log
+
 # Embedded repos
 # AnyKernel3/ (Uncommented and specific ignores added below)
 KernelSU-Next/

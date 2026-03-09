@@ -216,6 +216,8 @@ static struct sde_dbg_base {
 /* sde_dbg_base_evtlog - global pointer to main sde event log for macro use */
 struct sde_dbg_evtlog *sde_dbg_base_evtlog;
 
+#ifdef CONFIG_DEBUG_FS
+
 static void _sde_debug_bus_xbar_dump(void __iomem *mem_base,
 		struct sde_debug_bus_entry *entry, u32 val)
 {
@@ -3651,3 +3653,5 @@ void sde_dbg_set_sde_top_offset(u32 blk_off)
 {
 	sde_dbg_base.dbgbus_sde.top_blk_off = blk_off;
 }
+
+#endif /* CONFIG_DEBUG_FS */

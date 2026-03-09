@@ -174,9 +174,7 @@ struct q6audio_aio {
 	uint32_t wakelock_voted;
 	struct ws_mgr *audio_ws_mgr;
 
-#ifdef CONFIG_DEBUG_FS
 	struct dentry *dentry;
-#endif
 	struct list_head out_queue;     /* queue to retain output buffers */
 	struct list_head in_queue;      /* queue to retain input buffers */
 	struct list_head free_event_queue;
@@ -224,8 +222,6 @@ void audio_aio_async_out_flush(struct q6audio_aio *audio);
 void audio_aio_async_in_flush(struct q6audio_aio *audio);
 void audio_aio_ioport_reset(struct q6audio_aio *audio);
 int enable_volume_ramp(struct q6audio_aio *audio);
-#ifdef CONFIG_DEBUG_FS
 int audio_aio_debug_open(struct inode *inode, struct file *file);
 ssize_t audio_aio_debug_read(struct file *file, char __user *buf,
 			size_t count, loff_t *ppos);
-#endif

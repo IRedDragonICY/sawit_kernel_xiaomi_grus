@@ -191,6 +191,7 @@ static char *ipa_mhi_channel_state_str[] = {
 	(((state) >= 0 && (state) <= IPA_HW_MHI_CHANNEL_STATE_ERROR) ? \
 	ipa_mhi_channel_state_str[(state)] : \
 	"INVALID")
+#endif /* CONFIG_DEBUG_FS */
 
 static int ipa_mhi_set_lock_unlock(bool is_lock)
 {
@@ -288,6 +289,7 @@ fail_dma_enable:
 	return res;
 }
 
+#ifdef CONFIG_DEBUG_FS
 static int ipa_mhi_print_channel_info(struct ipa_mhi_channel_ctx *channel,
 	char *buff, int len)
 {
@@ -519,7 +521,6 @@ fail:
 
 #else
 static void ipa_mhi_debugfs_init(void) {}
-static void ipa_mhi_debugfs_destroy(void) {}
 #endif /* CONFIG_DEBUG_FS */
 
 static union IpaHwMhiDlUlSyncCmdData_t ipa_cached_dl_ul_sync_info;
@@ -2485,7 +2486,9 @@ int ipa_mhi_destroy_all_channels(void)
 
 static void ipa_mhi_debugfs_destroy(void)
 {
+#ifdef CONFIG_DEBUG_FS
 	debugfs_remove_recursive(dent);
+#endif
 }
 
 static void ipa_mhi_delete_rm_resources(void)

@@ -10,6 +10,8 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/errno.h>
+
 #ifdef CONFIG_DEBUG_FS
 
 #include <linux/debugfs.h>
@@ -2298,6 +2300,21 @@ struct dentry *ipa_debugfs_get_root(void)
 EXPORT_SYMBOL(ipa_debugfs_get_root);
 
 #else /* !CONFIG_DEBUG_FS */
+int _ipa_read_ep_reg_v3_0(char *buf, int max_len, int pipe)
+{
+	return -EOPNOTSUPP;
+}
+
+int _ipa_read_ep_reg_v4_0(char *buf, int max_len, int pipe)
+{
+	return -EOPNOTSUPP;
+}
+
+int _ipa_read_ipahal_regs(void)
+{
+	return -EOPNOTSUPP;
+}
+
 void ipa3_debugfs_init(void) {}
 void ipa3_debugfs_remove(void) {}
 #endif

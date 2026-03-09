@@ -79,6 +79,18 @@ ssize_t audio_aio_debug_read(struct file *file, char __user *buf,
 	buffer[n] = 0;
 	return simple_read_from_buffer(buf, count, ppos, buffer, n);
 }
+#else
+int audio_aio_debug_open(struct inode *inode, struct file *file)
+{
+	file->private_data = inode->i_private;
+	return 0;
+}
+
+ssize_t audio_aio_debug_read(struct file *file, char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	return 0;
+}
 #endif
 
 static long audio_aio_ioctl(struct file *file, unsigned int cmd,

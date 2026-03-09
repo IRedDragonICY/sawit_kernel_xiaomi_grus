@@ -4,6 +4,37 @@ set -e
 KERNEL_DIR="$(pwd)"
 ANYKERNEL_DIR="${KERNEL_DIR}/AnyKernel3"
 OUT_DIR="${KERNEL_DIR}/out"
+BUILD_LOG_FILE="${BUILD_LOG_FILE:-${KERNEL_DIR}/build.log}"
+
+setup_build_log() {
+    if [ "${BUILD_LOG_INITIALIZED:-0}" = "1" ]; then
+        return
+    fi
+
+    mkdir -p "$(dirname "$BUILD_LOG_FILE")"
+    : > "$BUILD_LOG_FILE"
+
+    exec > >(tee -a "$BUILD_LOG_FILE") 2>&1
+    export BUILD_LOG_INITIALIZED=1
+
+    echo "[*] Build log: ${BUILD_LOG_FILE}"
+    echo "[*] Started:   $(date '+%Y-%m-%d %H:%M:%S %Z')"
+}
+
+setup_build_log
+
+# Keep Clang LTO builds stable on large core-count machines.
+# Override with BUILD_JOBS=<n> when you intentionally want a different level.
+get_build_jobs() {
+    local jobs="${BUILD_JOBS:-4}"
+
+    if ! [[ "$jobs" =~ ^[1-9][0-9]*$ ]]; then
+        echo "[!] Invalid BUILD_JOBS='$jobs', falling back to 4"
+        jobs=4
+    fi
+
+    printf '%s\n' "$jobs"
+}
 
 # Versioning
 KERNEL_VERSION="v1.0"
@@ -269,6 +300,7 @@ setup_gcc_toolchain() {
         O="${OUT_DIR}"
         ARCH=arm64
         CROSS_COMPILE=aarch64-linux-gnu-
+        KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST:-cursor}"
     )
     echo "[*] Toolchain: GCC ($(aarch64-linux-gnu-gcc --version | head -1))"
 }
@@ -376,6 +408,7 @@ setup_clang_toolchain() {
         LLVM=1
         LLVM_IAS=1
         CROSS_COMPILE=aarch64-linux-gnu-
+        KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST:-cursor}"
         "KCFLAGS=${TARGET_FLAGS} ${OPT_FLAGS}"
     )
     echo "[*] Toolchain: Clang $(clang --version | head -1)"
@@ -428,13 +461,22 @@ build_variant() {
         generate_extreme_config
         final_configs="$final_configs extreme_clang.config"
         VARIANT_SUFFIX="${VARIANT_SUFFIX}-lto"
+
+        # Keep debugfs on for the nonroot display boot test.
+        if [ "$variant" = "nonroot" ]; then
+            final_configs="$final_configs nonroot_debugfs.config"
+            echo "[*] Override:  DEBUG_FS enabled for nonroot test"
+        fi
     fi
 
     # Build dynamic EXTRAVERSION: e.g. -sawit-ksun-susfs-lto
     # Use a local copy so successive variant builds don't accumulate flags
     local EXTRA="${VARIANT_SUFFIX}"
     local -a BUILD_FLAGS=("${MAKE_FLAGS[@]}" "EXTRAVERSION=${EXTRA}")
+    local build_jobs
+    build_jobs="$(get_build_jobs)"
     echo "[*] Version:   4.9.337${EXTRA}"
+    echo "[*] Jobs:      ${build_jobs}"
 
     echo "[*] Cleaning previous build artifacts..."
     mkdir -p "$OUT_DIR"
@@ -446,7 +488,7 @@ build_variant() {
     make "${BUILD_FLAGS[@]}" olddefconfig
 
     echo "[*] Building kernel..."
-    make "${BUILD_FLAGS[@]}" -j$(nproc --all) V=0 Image.gz-dtb
+    make "${BUILD_FLAGS[@]}" -j"${build_jobs}" V=0 Image.gz-dtb
 
     if [ -f "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb" ]; then
         echo "[*] Kernel built successfully!"

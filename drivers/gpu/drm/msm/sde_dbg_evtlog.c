@@ -23,6 +23,8 @@
 #include "sde_dbg.h"
 #include "sde_trace.h"
 
+#ifdef CONFIG_DEBUG_FS
+
 #define SDE_EVTLOG_FILTER_STRSIZE	64
 
 struct sde_evtlog_filter {
@@ -316,3 +318,5 @@ void sde_evtlog_destroy(struct sde_dbg_evtlog *evtlog)
 	}
 	kfree(evtlog);
 }
+
+#endif /* CONFIG_DEBUG_FS */
