@@ -146,7 +146,16 @@ EOF
 # ── Debug bloat disabled ──
 # CONFIG_DEBUG_INFO is not set
 # CONFIG_DEBUG_ALIGN_RODATA is not set
-# CONFIG_DEBUG_FS is not set
+# NOTE: CONFIG_DEBUG_FS=y is intentionally KEPT enabled.
+#   Reason: Qualcomm MSM DRM/SDE/DSI display pipeline hard-depends on debugfs:
+#   - msm_drv.c::msm_drm_bind() creates debug_root via debugfs_create_dir()
+#   - dsi_display.c::dsi_display_debugfs_init() creates per-display debugfs entries
+#   - dsi_ctrl.c::dsi_ctrl_debugfs_init() creates per-controller debugfs entries
+#   All three treat debugfs creation failure as fatal (IS_ERR_OR_NULL → goto fail).
+#   Additionally, FTRACE (needed for KSU kprobes) force-selects DEBUG_FS via Kconfig
+#   'select' mechanism, which cannot be overridden by config fragments.
+#   Tested: DEBUG_FS=n causes black screen on boot (display never initializes).
+#   Impact: minimal (~40KB overhead, debugfs dir is nearly empty with debug consumers off)
 # CONFIG_REGMAP_ALLOW_WRITE_DEBUGFS is not set
 # CONFIG_QMP_DEBUGFS_CLIENT is not set
 # CONFIG_SLUB_DEBUG is not set
@@ -244,14 +253,17 @@ EOF
 # ── Extra Driver Logging disabled ──
 # CONFIG_SCSI_LOGGING is not set
 # CONFIG_SCSI_UFSHCD_CMD_LOGGING is not set
+# CONFIG_SCSI_CONSTANTS is not set
 # CONFIG_DM_DEBUG is not set
 # CONFIG_SPMI_MSM_PMIC_ARB_DEBUG is not set
 # CONFIG_VIDEO_ADV_DEBUG is not set
 # CONFIG_MSM_SDE_ROTATOR_EVTLOG_DEBUG is not set
 # CONFIG_DRM_SDE_EVTLOG_DEBUG is not set
 # CONFIG_MMC_PERF_PROFILING is not set
+# CONFIG_MMC_TEST is not set
 # CONFIG_IOMMU_DEBUG is not set
 # CONFIG_IOMMU_DEBUG_TRACKING is not set
+# CONFIG_IOMMU_TESTS is not set
 # CONFIG_RMNET_DATA_DEBUG_PKT is not set
 # CONFIG_IPC_LOGGING is not set
 # CONFIG_NETFILTER_XT_TARGET_LOG is not set
@@ -271,6 +283,7 @@ EOF
 # CONFIG_UID_SYS_STATS is not set
 # CONFIG_MEMORY_STATE_TIME is not set
 # CONFIG_XFRM_STATISTICS is not set
+# CONFIG_KALLSYMS_ALL is not set
 EOF
     fi
 
