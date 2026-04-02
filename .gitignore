@@ -135,7 +135,7 @@ out/
 
 # Embedded repos
 # AnyKernel3/ (Uncommented and specific ignores added below)
-KernelSU-Next/
+# KernelSU-Next/
 ReZygisk/
 
 # AnyKernel3 specific ignores
