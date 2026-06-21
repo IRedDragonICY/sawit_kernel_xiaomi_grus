@@ -1,0 +1,158 @@
+name: Build Sawit Kernel
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Build variant'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - nonroot
+          - ksun
+          - ksun_susfs
+          - ksun_susfs_ds
+
+jobs:
+  build:
+    name: Build Kernel
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - nonroot
+          - ksun
+          - ksun_susfs
+          - ksun_susfs_ds
+    # Skip matrix when workflow_dispatch selects a specific variant
+    # (unless 'all' is selected)
+    env:
+      SELECTED_VARIANT: ${{ github.event.inputs.variant || 'all' }}
+
+    steps:
+      - name: Check if variant should run
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && \
+             [ "$SELECTED_VARIANT" != "all" ] && \
+             [ "$SELECTED_VARIANT" != "${{ matrix.variant }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Maximize build space
+        if: steps.check.outputs.skip != 'true'
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          swap-size-mb: 4096
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+
+      - name: Checkout kernel source
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Install build dependencies
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            p7zip-full \
+            cpio \
+            zip \
+            python3
+
+      - name: Build variant - ${{ matrix.variant }}
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          chmod +x build.sh droidspaces_patch.sh fixup.sh
+          bash build.sh ${{ matrix.variant }}
+
+      - name: Upload kernel zip
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sawit-Kernel-${{ matrix.variant }}
+          path: Sawit-Kernel-*.zip
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lhR artifacts/
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v1.0-$(date +'%Y%m%d-%H%M')"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Generated tag: $TAG"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Sawit Kernel ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## Sawit Kernel — SDM710 (Xiaomi Grus)
+
+            ### Variants
+            | Zip | Features |
+            |-----|----------|
+            | `NonRoot` | Stock kernel, no root |
+            | `KSUNext` | KernelSU-Next (kprobes) |
+            | `KSUNext-susfs` | KernelSU-Next + SUSFS stealth |
+            | `KSUNext-susfs-droidspaces` | KernelSU-Next + SUSFS + Droidspaces container support |
+
+            ### Droidspaces
+            The `droidspaces` variant includes full container support:
+            - Linux namespaces (PID, NET, UTS, IPC)
+            - Cgroup isolation (device, pids, memory, net_prio)
+            - Network isolation (veth, bridge, NAT)
+            - Overlay filesystem for volatile containers
+            - UFW/Fail2ban firewall support inside containers
+
+            Built from commit: ${{ github.sha }}
+          files: artifacts/*.zip
+          draft: false
+          prerelease: false

@@ -462,9 +462,18 @@ build_variant() {
             echo "[*] Variant: KernelSU-Next + SUSFS"
             echo "============================================"
             ;;
+        ksun_susfs_ds)
+            zip_name="Sawit-Kernel-${KERNEL_VERSION}-SDM710-KSUNext-susfs-droidspaces.zip"
+            final_configs="$BASE_CONFIG $XIAOMI_CONFIGS ksu_next.config droidspaces.config"
+            VARIANT_SUFFIX="-sawit-ksun-susfs-ds"
+            echo ""
+            echo "============================================"
+            echo "[*] Variant: KernelSU-Next + SUSFS + Droidspaces"
+            echo "============================================"
+            ;;
         *)
             echo "[!] Unknown variant: $variant"
-            echo "Usage: $0 [--clang] {nonroot|ksun|ksun_susfs|all}"
+            echo "Usage: $0 [--clang] {nonroot|ksun|ksun_susfs|ksun_susfs_ds|all}"
             return 1
             ;;
     esac
@@ -496,12 +505,27 @@ build_variant() {
     rm -f "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb"
     rm -f "${OUT_DIR}/.config" # Force config regeneration
 
+    # Apply Droidspaces source patches if droidspaces.config is in the config chain
+    local droidspaces_applied=0
+    if echo "$final_configs" | grep -q "droidspaces.config"; then
+        echo "[*] Applying Droidspaces kernel source patches..."
+        bash "${KERNEL_DIR}/droidspaces_patch.sh" "${KERNEL_DIR}"
+        droidspaces_applied=1
+    fi
+
     echo "[*] Configuring kernel..."
     make "${BUILD_FLAGS[@]}" $final_configs
     make "${BUILD_FLAGS[@]}" olddefconfig
 
     echo "[*] Building kernel..."
     make "${BUILD_FLAGS[@]}" -j"${build_jobs}" V=0 Image.gz-dtb
+
+    # Revert Droidspaces source patches to keep git tree clean
+    if [ "$droidspaces_applied" = 1 ]; then
+        echo "[*] Reverting Droidspaces source patches (keeping source clean)..."
+        git -C "${KERNEL_DIR}" checkout kernel/cgroup.c 2>/dev/null || true
+        git -C "${KERNEL_DIR}" checkout net/netfilter/xt_qtaguid.c 2>/dev/null || true
+    fi
 
     if [ -f "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb" ]; then
         echo "[*] Kernel built successfully!"
@@ -560,10 +584,10 @@ VARIANT="${VARIANT:-ksun_susfs}"
 
 if [ "$VARIANT" = "all" ]; then
     echo "========================================================"
-    echo "[*] Building ALL variants: nonroot, ksun, ksun_susfs"
+    echo "[*] Building ALL variants: nonroot, ksun, ksun_susfs, ksun_susfs_ds"
     echo "========================================================"
     FAILED=()
-    for v in nonroot ksun ksun_susfs; do
+    for v in nonroot ksun ksun_susfs ksun_susfs_ds; do
         if build_variant "$v"; then
             echo "[✓] $v succeeded"
         else
@@ -574,8 +598,8 @@ if [ "$VARIANT" = "all" ]; then
     echo ""
     echo "========================================================"
     if [ ${#FAILED[@]} -eq 0 ]; then
-        echo "[*] All 3 variants built successfully!"
-        ls -lh "${KERNEL_DIR}"/Sawit-Kernel-SDM710-*.zip
+        echo "[*] All 4 variants built successfully!"
+        ls -lh "${KERNEL_DIR}"/Sawit-Kernel-*.zip
     else
         echo "[!] Failed variants: ${FAILED[*]}"
         exit 1
